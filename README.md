@@ -12,3 +12,9 @@ Uses the PRG integrated button to control the node.
  - Long press (<0.5s): Send one uplink packet at time.
  - Long Long press (>2s): Start the Auto modo that send uplink packets each 30 seconds.
  - Short press while in Auto mode: Stop automatic mode.
+
+
+## Pictures
+![](https://pbs.twimg.com/media/DrJYbmPX0AASoEZ.jpg:small)
+
+![](https://pbs.twimg.com/media/DrJ--3sWwAAv8_9.jpg:small)
