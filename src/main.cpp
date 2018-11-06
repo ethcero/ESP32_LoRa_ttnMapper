@@ -26,7 +26,6 @@ char TTN_response[30];
 enum { EV_NONE=0, EV_SHORTPRESS, EV_LONGPRESS, EV_LONGLONGPRESS };
 enum { MANUAL=0, AUTO};
 int mode = MANUAL;
-int joinStatus = EV_JOINING;
 bool was_pressed = false;
 const int timeLongThreshold = 500;
 const int timeLongLongThreshold = 2000;
@@ -37,12 +36,13 @@ String lora_msg = "";
 
 SSD1306 display (OLED_I2C_ADDR, OLED_SDA, OLED_SCL);
 
-//keys must be defined on keys.h. Rename keys.h.template to keys.h and add your keys
-void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
+// These callbacks are only used in over-the-air activation, so they are
+// left empty here (we cannot leave them out completely unless
+// DISABLE_JOIN is set in config.h, otherwise the linker will complain).
+void os_getArtEui (u1_t* buf) { }
+void os_getDevEui (u1_t* buf) { }
+void os_getDevKey (u1_t* buf) { }
 
-void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
-
-void os_getDevKey (u1_t* buf) { memcpy_P(buf, APPKEY, 16);}
 
 static osjob_t sendjob;
 
@@ -65,10 +65,8 @@ void do_send(osjob_t* j){
 
     static uint8_t message[] = "H";
 
-    if(joinStatus == EV_JOINING) {
-        Serial.println(F("Not joined yet"));
-        // Check if there is not a current TX/RX job running
-    }else if (LMIC.opmode & OP_TXRXPEND) {
+    // Check if there is not a current TX/RX job running
+    if (LMIC.opmode & OP_TXRXPEND) {
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
         // Prepare upstream data transmission at the next possible time.
@@ -120,7 +118,6 @@ void onEvent (ev_t ev) {
         case EV_JOINING:
             Serial.println(F("EV_JOINING: -> Joining..."));
             lora_msg = "OTAA joining....";
-            joinStatus = EV_JOINING;
             break;
         case EV_JOIN_FAILED:
             Serial.println(F("EV_JOIN_FAILED: -> Joining failed"));
@@ -129,7 +126,6 @@ void onEvent (ev_t ev) {
         case EV_JOINED:
             Serial.println(F("EV_JOINED"));
             lora_msg = "Joined!";
-            joinStatus = EV_JOINED;
             delay(3);
             // Disable link check validation (automatically enabled
             // during join, but not supported by TTN at this time).
@@ -160,8 +156,11 @@ void lora_init() {
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
     LMIC_setClockError(MAX_CLOCK_ERROR * 1 / 100);
+
+    LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
+
     // Set up the channels used by the Things Network, which corresponds
-    // to the defaults of most gateways. Without this, only three base
+    // to the defaults of most gateways. Without this, only2 three base
     // channels from the LoRaWAN specification are used, which certainly
     // works, so it is good for debugging, but can overload those
     // frequencies, so be sure to configure the full frequency range of
@@ -279,8 +278,7 @@ void setup() {
     lora_msg = "Starting....";
 
     lora_init();
-
-    LMIC_startJoining();
+    lora_msg = "Ready!";
 }
 
 void loop() {
